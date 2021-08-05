@@ -12,7 +12,7 @@ from pathlib import Path
 
 import sphere
 
-DATA_DIR = Path(__file__).parents[1] / 'example' / 'example_data'
+DATA_DIR = Path(__file__).parents[1] / 'examples' / 'example_data'
 
 
 class TestOpen(unittest.TestCase):

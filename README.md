@@ -1,7 +1,7 @@
 SPHERE file I/O
 ===============
 
-Python simple interface for NIST SPeech HEader REsources (SPHERE) file
+Simple python I/O for NIST SPeech HEader REsources (SPHERE) file
 
 `sphere` provides an interface like the `wave` module without any third-party modules.
 
@@ -13,7 +13,7 @@ Basic SPHERE file input
 ```python
 import sphere
 
-file = 'example/speech.sph'     # path to SPHERE file
+file = 'examples/example_data/speech.sph'   # path to SPHERE file
 with sphere.open(file, 'r') as fp:
     params = fp.getparams()
     sph_wave = fp.readframes(params.sample_count)
@@ -30,7 +30,7 @@ So it has follow methods:
 ```python
 import sphere
 
-file = 'example/SA1.WAV'
+file = 'examples/example_data/SA1.WAV'
 with sphere.open(file, 'r', is_wavelike=True) as fp:
     nframes = fp.getnframes()
     sample_rate = fp.getframerate()
@@ -46,7 +46,7 @@ Basic SPHERE file output
 ```python
 import sphere
 
-file = 'example/test.sph'     # path to SPHERE file
+file = 'examples/output.sph'
 with sphere.open(file, 'r') as fp:
     params = fp.setparams({
         'channel_count': 1,
@@ -62,5 +62,4 @@ with sphere.open(file, 'r') as fp:
 - [x] Jupyter notebook examples
 - [x] Enough comments
 - [x] setup.py
-- [ ] make documentation
-- [ ] provide cli interface (convert to raw or wav)
+- [ ] provide cli interface (convert to raw, wav, sph)
