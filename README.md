@@ -62,4 +62,4 @@ with sphere.open(file, 'r') as fp:
 - [x] Jupyter notebook examples
 - [x] Enough comments
 - [x] setup.py
-- [ ] provide cli interface (convert to raw, wav, sph)
+- [x] provide cli interface (convert to raw, wav, sph)

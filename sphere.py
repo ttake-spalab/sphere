@@ -61,7 +61,6 @@ close() to patch up the sizes in the header.
 The close() method is called automatically when the class instance
 is destroyed.
 
-Last update: Thu Aug 05 2021 10:20:24
 @author t-take
 """
 
@@ -74,7 +73,7 @@ from collections import namedtuple
 ENCODE = 'ascii'
 
 __all__ = ["open", "Error", "Sphere_read", "Sphere_write", "WaveLike_read"]
-__version__ = '1.0.0'
+__version__ = '1.0.1'
 
 
 class Error(Exception):
@@ -164,15 +163,10 @@ class Sphere_read(object):
         return self._file
 
     def rewind(self):
-        self._data_seek_needed = 1
-        self._soundpos = 0
+        wave.Wave_read.rewind(self)
 
     def close(self):
-        self._file = None
-        file = self._i_opened_the_file
-        if file:
-            self._i_opened_the_file = None
-            file.close()
+        wave.Wave_read.close(self)
 
     def tell(self):
         return self._soundpos
@@ -242,7 +236,7 @@ class Sphere_write(object):
     """
     def __init__(self, f):
         self._i_opened_the_file = None
-        if isinstance(f, str):
+        if not hasattr(f, 'write'):
             f = builtins.open(f, 'wb')
             self._i_opened_the_file = f
         try:
@@ -319,23 +313,10 @@ class Sphere_write(object):
         self._nframeswritten = self._nframeswritten + nframes
 
     def writeframes(self, data):
-        self.writeframesraw(data)
-        if self._datalength != self._datawritten:
-            self._patchheader()
+        wave.Wave_write.writeframes(self, data)
 
     def close(self):
-        try:
-            if self._file:
-                self._ensure_header_written(0)
-                if self._datalength != self._datawritten:
-                    self._patchheader()
-                self._file.flush()
-        finally:
-            self._file = None
-            file = self._i_opened_the_file
-            if file:
-                self._i_opened_the_file = None
-                file.close()
+        wave.Wave_write.close(self)
 
     #
     # Internal methods.
@@ -401,3 +382,85 @@ def open(f, mode=None, *, is_wavelike=False):
         return Sphere_write(f)
     else:
         raise Error("mode must be 'r', 'rb', 'w', or 'wb'")
+
+
+if __name__ == "__main__":
+
+    import argparse
+    from functools import partial
+    from pathlib import Path
+
+    parser = argparse.ArgumentParser(
+        description='SPHERE file converter',
+        epilog=('Converte header from SPHERE or WAVE to WAVE, SPHERE or RAW. '
+                'Input file format is automatically detected.'),
+    )
+    parser.add_argument('input', type=Path,
+                        help='Input audio file (WAVE or SPHERE)')
+    parser.add_argument('-o', '--output', type=Path,
+                        help=('Output audio file path. If this is not given, '
+                              'input name + format suffix will be used.'))
+    parser.add_argument('-f', '--format', choices=['wav', 'sph', 'raw'],
+                        help='Output file format.')
+
+    # define variable from parsed arguments
+    args = parser.parse_args()
+    ifile = args.input
+    ofile = args.output
+    oform = args.format
+
+    if not ifile.is_file():
+        raise FileNotFoundError(f'Failed: Input file is not found: "{ifile}"')
+
+    # Check the input file format
+    try:
+        fp = open(ifile)
+        fp.close()
+    except Error:
+        try:
+            wfp = wave.open(str(ifile))
+            wfp.close()
+        except wave.Error:
+            msg = f'Failed: Input file type is not supported: "{ifile}"'
+            raise RuntimeError(msg) from None
+        else:
+            in_opener = wave.open
+            iform = 'wav'
+    else:
+        in_opener = partial(open, is_wavelike=True)
+        iform = 'sph'
+
+    if oform is None:
+        oform = {'wav': 'sph', 'sph': 'wav'}[iform]
+
+    if ofile is None:
+        ofile = ifile.with_suffix('.' + oform)
+    elif ofile.is_dir():
+        ofile = ofile / f'{ifile.stem}.{oform}'
+
+    if oform == 'wav':
+        out_opener = wave.open
+    elif oform == 'sph':
+        out_opener = open
+    elif oform == 'raw':
+        out_opener = builtins.open
+
+    # File read & write
+    with (in_opener(str(ifile)) as in_fp,
+          out_opener(str(ofile), 'wb') as out_fp):
+
+        if oform == 'wav':
+            out_fp.setparams(in_fp.getparams())
+        if oform == 'sph':
+            params = in_fp.getparams()
+            out_fp.setparams({
+                'channel_count': params.nchannels,
+                'sample_n_bytes': params.sampwidth,
+                'sample_count': params.nframes,
+                'sample_rate': params.framerate,
+            })
+
+        out_fp.writeframes(in_fp.readframes(in_fp.getnframes()))
+
+    oformat = {'wav': 'WAVE', 'sph': 'SPHERE', 'raw': 'RAW'}[oform]
+    print(f'Success: Dump the {oformat} file: "{ofile}"')
