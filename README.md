@@ -57,6 +57,16 @@ with sphere.open(file, 'r') as fp:
 ```
 
 
+## CLI tool
+
+You can use `sphere` as CLI that convert the SPHERE file to WAVE file.
+```
+python -m sphere ./examples/examle_data/speech.sph -o ./speech.wav
+```
+
+For more details, use cli `sphere` with `-h` option (`python -m sphere -h`).
+
+
 ## TODO
 - [x] LICENSE file
 - [x] Jupyter notebook examples
